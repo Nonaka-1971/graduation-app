@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>卒業おめでとうアプリ</title>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Helvetica Neue', Arial, 'Hiragino Sans', 'Meiryo', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 24px;
+      padding: 36px 32px;
+      max-width: 460px;
+      width: 100%;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.25);
+    }
+
+    h1 { text-align: center; color: #333; font-size: 1.5em; margin-bottom: 22px; }
+
+    label { display: block; margin-bottom: 6px; color: #555; font-weight: 600; font-size: 0.9em; }
+
+    input[type="number"],
+    input[type="text"] {
+      width: 100%;
+      padding: 12px 14px;
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      font-size: 1em;
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    input:focus { border-color: #667eea; }
+    .form-group { margin-bottom: 16px; }
+    .hint { margin-top: 5px; font-size: 0.78em; color: #aaa; }
+
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 15px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 1.1em;
+      font-weight: bold;
+      cursor: pointer;
+      text-align: center;
+      -webkit-tap-highlight-color: rgba(0,0,0,0.1);
+      user-select: none;
+    }
+
+    .btn:active { opacity: 0.75; }
+
+    #qr-section { margin-top: 22px; text-align: center; display: none; }
+    #qr-image { display: inline-block; }
+    #qr-image img, #qr-image canvas {
+      border: 3px solid #eee; border-radius: 10px; padding: 6px; max-width: 220px;
+    }
+
+    .qr-badge {
+      display: inline-block; margin-top: 8px; padding: 3px 10px;
+      background: #f0f0f0; border-radius: 20px; font-size: 0.75em; color: #888;
+    }
+
+    .qr-expiry {
+      margin-top: 10px; padding: 10px 14px; background: #f6f6f6;
+      border-radius: 8px; font-size: 0.78em; color: #666; text-align: left;
+    }
+
+    .countdown-bar {
+      text-align: center; font-size: 0.88em; color: #888;
+      margin-bottom: 20px; padding: 10px;
+      background: #fafafa; border-radius: 10px; border: 1px solid #eee;
+    }
+
+    .countdown-bar .time {
+      font-size: 1.4em; font-weight: bold; color: #e74c3c; letter-spacing: 2px;
+    }
+
+    .warning-banner {
+      margin-bottom: 18px; padding: 12px 14px;
+      background: #fff3cd; border: 1px solid #ffc107; border-radius: 10px;
+      font-size: 0.82em; color: #856404; line-height: 1.6; display: none;
+    }
+
+    .expired-wrap { text-align: center; }
+    .expired-wrap .icon { font-size: 3em; margin-bottom: 14px; color: #e74c3c; }
+    .expired-wrap h1 { color: #e74c3c; }
+    .expired-wrap p { color: #666; margin-top: 10px; font-size: 0.9em; line-height: 1.7; }
+
+    .view { display: none; }
+    .view.active { display: block; }
+  </style>
+</head>
+<body>
+
+<div class="card" id="card">
+
+  <!-- 管理者ビュー -->
+  <div id="admin-view" class="view">
+    <h1>🎓 QRコード設定</h1>
+
+    <div class="warning-banner" id="file-warning">
+      ⚠️ <strong>このままではスマホからQRコードを読み込めません。</strong><br>
+      <code>start_server.bat</code> をダブルクリックしてサーバーを起動してから
+      表示されたURLでアクセスしてください。
+    </div>
+
+    <div class="form-group">
+      <label>有効時間（分）</label>
+      <input type="number" id="minutes-input" min="1" max="1440" value="30">
+      <div class="hint">QRコードが有効な時間（分）</div>
+    </div>
+
+    <div class="form-group">
+      <label>背景画像URL（任意）</label>
+      <input type="text" id="bg-url-input" placeholder="https://example.com/photo.jpg">
+      <div class="hint">未入力の場合は桜色の背景になります</div>
+    </div>
+
+    <button class="btn" onclick="startQR()">▶ スタート</button>
+
+    <div id="qr-section">
+      <div id="qr-image"></div>
+      <div class="qr-badge">🔄 毎秒自動更新中</div>
+      <div class="qr-expiry">
+        <strong>有効期限：</strong><span id="qr-expiry-text">—</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 登録ビュー -->
+  <div id="register-view" class="view">
+    <h1>✏️ お名前を入力</h1>
+
+    <div class="countdown-bar">
+      有効期限まで<br>
+      <span class="time" id="countdown-display">--:--</span>
+    </div>
+
+    <div class="form-group">
+      <label>お名前</label>
+      <input type="text" id="name-input"
+             placeholder="名前を入力してください"
+             maxlength="30"
+             autocomplete="off"
+             autocorrect="off"
+             autocapitalize="off"
+             spellcheck="false">
+    </div>
+
+    <button class="btn" id="submit-btn" onclick="submitName()">登録する</button>
+  </div>
+
+  <!-- 期限切れビュー -->
+  <div id="expired-view" class="view">
+    <div class="expired-wrap">
+      <div class="icon">⏰</div>
+      <h1>期限切れ</h1>
+      <p>このQRコードの有効期限が切れています。<br>新しいQRコードを発行してください。</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ─── URLパラメータ ─── */
+var params  = new URLSearchParams(window.location.search);
+var mode    = params.get('mode')    || '';
+var expires = parseInt(params.get('expires') || '0', 10);
+var bgParam = params.get('bg')      || '';
+
+/* ─── 初期化 ─── */
+if (mode === 'register') {
+  if (expires && Date.now() > expires) {
+    showView('expired-view');
+  } else {
+    showView('register-view');
+    if (expires) startCountdown(expires);
+  }
+} else {
+  showView('admin-view');
+  if (location.protocol === 'file:') {
+    document.getElementById('file-warning').style.display = 'block';
+  }
+}
+
+/* ─── ビュー切替 ─── */
+function showView(id) {
+  ['admin-view', 'register-view', 'expired-view'].forEach(function(v) {
+    document.getElementById(v).classList.remove('active');
+  });
+  document.getElementById(id).classList.add('active');
+}
+
+/* ─── QRコード毎秒自動生成 ─── */
+var qrTimer = null;
+var qrObj   = null;
+
+function startQR() {
+  var min = parseInt(document.getElementById('minutes-input').value, 10);
+  if (!min || min < 1) { alert('有効時間を1分以上で入力してください'); return; }
+
+  qrObj = null;
+  document.getElementById('qr-image').innerHTML = '';
+  if (qrTimer) clearInterval(qrTimer);
+
+  generateQRTick();
+  qrTimer = setInterval(generateQRTick, 1000);
+}
+
+function generateQRTick() {
+  var min = parseInt(document.getElementById('minutes-input').value, 10);
+  if (!min || min < 1) return;
+
+  var bg     = document.getElementById('bg-url-input').value.trim();
+  var expiry = Date.now() + min * 60 * 1000;
+  var base   = window.location.href.split('?')[0];
+  var url    = base + '?mode=register&expires=' + expiry;
+  if (bg) url += '&bg=' + encodeURIComponent(bg);
+
+  var imgEl = document.getElementById('qr-image');
+
+  if (!qrObj) {
+    imgEl.innerHTML = '';
+    try {
+      qrObj = new QRCode(imgEl, {
+        text: url,
+        width: 220,
+        height: 220,
+        colorDark:  '#222222',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M
+      });
+      document.getElementById('qr-section').style.display = 'block';
+    } catch(e) {
+      imgEl.innerHTML = '<p style="color:red;">QRコード生成エラー: ' + e.message + '</p>';
+    }
+  } else {
+    try { qrObj.makeCode(url); } catch(e) {}
+  }
+
+  document.getElementById('qr-expiry-text').textContent =
+    new Date(expiry).toLocaleString('ja-JP');
+}
+
+/* ─── カウントダウン ─── */
+var countdownTimer = null;
+
+function startCountdown(expiryMs) {
+  function tick() {
+    var diff = expiryMs - Date.now();
+    if (diff <= 0) {
+      clearInterval(countdownTimer);
+      showView('expired-view');
+      return;
+    }
+    var s  = Math.floor(diff / 1000);
+    var hh = Math.floor(s / 3600);
+    var mm = Math.floor((s % 3600) / 60);
+    var ss = s % 60;
+    var disp = hh > 0
+      ? hh + ':' + pad(mm) + ':' + pad(ss)
+      : pad(mm) + ':' + pad(ss);
+    document.getElementById('countdown-display').textContent = disp;
+  }
+  function pad(n) { return String(n).padStart(2, '0'); }
+  tick();
+  countdownTimer = setInterval(tick, 1000);
+}
+
+/* ─── 名前登録 → お祝い画面をその場で構築 ─── */
+function submitName() {
+  var btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.textContent = '処理中...';
+
+  var name = document.getElementById('name-input').value.trim();
+  if (!name) {
+    alert('名前を入力してください');
+    btn.disabled = false;
+    btn.textContent = '登録する';
+    return;
+  }
+
+  if (expires && Date.now() > expires) {
+    if (countdownTimer) clearInterval(countdownTimer);
+    showView('expired-view');
+    return;
+  }
+
+  if (countdownTimer) clearInterval(countdownTimer);
+
+  buildCongratsScreen(name);
+}
+
+function buildCongratsScreen(name) {
+  var now = new Date();
+  var dateStr = now.toLocaleDateString('ja-JP', {
+    year: 'numeric', month: 'long', day: 'numeric', weekday: 'long'
+  });
+
+  /* 背景スタイル */
+  var bgStyle = bgParam
+    ? 'background:url(' + bgParam + ') center/cover no-repeat;'
+    : 'background:linear-gradient(160deg,#ffd6e0 0%,#ffb3c6 45%,#ff8fab 100%);';
+
+  /* 画面全体を覆うコンテナを作成 */
+  var screen = document.createElement('div');
+  screen.style.cssText = [
+    'position:fixed',
+    'top:0','left:0','right:0','bottom:0',
+    'display:flex',
+    'flex-direction:column',
+    'align-items:center',
+    'justify-content:space-around',
+    'padding:60px 28px',
+    'color:#fff',
+    'text-align:center',
+    'z-index:9999',
+    bgStyle
+  ].join(';');
+
+  /* 背景画像がある場合のオーバーレイ */
+  if (bgParam) {
+    var overlay = document.createElement('div');
+    overlay.style.cssText = 'position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.38);';
+    screen.appendChild(overlay);
+  }
+
+  /* コンテンツ */
+  var inner = document.createElement('div');
+  inner.style.cssText = 'position:relative;z-index:1;width:100%;display:flex;flex-direction:column;align-items:center;gap:48px;';
+
+  /* 上段：年月日 */
+  var dateEl = document.createElement('div');
+  dateEl.style.cssText = 'font-size:clamp(1.1em,4vw,1.7em);font-weight:500;line-height:1.7;text-shadow:0 2px 12px rgba(0,0,0,0.55);';
+  dateEl.textContent = dateStr;
+
+  /* 中段：名前 */
+  var nameBlock = document.createElement('div');
+  nameBlock.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:10px;';
+
+  var nameLabel = document.createElement('div');
+  nameLabel.style.cssText = 'font-size:clamp(0.85em,3.5vw,1.05em);opacity:0.9;letter-spacing:0.15em;';
+  nameLabel.textContent = '卒業生';
+
+  var nameEl = document.createElement('div');
+  nameEl.style.cssText = 'font-size:clamp(2.8em,11vw,4.5em);font-weight:bold;letter-spacing:0.1em;text-shadow:0 4px 20px rgba(0,0,0,0.55);';
+  nameEl.textContent = name;
+
+  nameBlock.appendChild(nameLabel);
+  nameBlock.appendChild(nameEl);
+
+  /* 下段：メッセージ */
+  var msgEl = document.createElement('div');
+  msgEl.style.cssText = 'font-size:clamp(1.3em,5.5vw,2em);font-weight:bold;line-height:1.7;letter-spacing:0.05em;text-shadow:0 2px 12px rgba(0,0,0,0.55);';
+  msgEl.textContent = '🎓 ご卒業おめでとうございます 🎓';
+
+  inner.appendChild(dateEl);
+  inner.appendChild(nameBlock);
+  inner.appendChild(msgEl);
+  screen.appendChild(inner);
+
+  /* body に追加してカードを隠す */
+  document.body.appendChild(screen);
+  document.getElementById('card').style.display = 'none';
+}
+
+/* ─── Enter キーで登録 ─── */
+document.getElementById('name-input').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') submitName();
+});
+</script>
+</body>
+</html>
