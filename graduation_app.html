@@ -401,7 +401,7 @@ function buildCongratsScreen(name) {
     'display:flex',
     'flex-direction:column',
     'align-items:center',
-    'justify-content:space-around',
+    'justify-content:flex-start',
     'padding:60px 28px',
     'color:#fff',
     'text-align:center',
@@ -418,7 +418,7 @@ function buildCongratsScreen(name) {
 
   /* コンテンツ */
   var inner = document.createElement('div');
-  inner.style.cssText = 'position:relative;z-index:1;width:100%;display:flex;flex-direction:column;align-items:center;gap:48px;';
+  inner.style.cssText = 'position:relative;z-index:1;width:100%;display:flex;flex-direction:column;align-items:center;flex:1;justify-content:center;';
 
   /* 上段：年月日 */
   var dateEl = document.createElement('div');
@@ -447,8 +447,11 @@ function buildCongratsScreen(name) {
 
   inner.appendChild(dateEl);
   inner.appendChild(nameBlock);
-  inner.appendChild(msgEl);
   screen.appendChild(inner);
+
+  /* メッセージを最下部に配置 */
+  msgEl.style.cssText = 'position:absolute;bottom:5mm;left:0;right:0;z-index:1;font-size:clamp(1.3em,5.5vw,2em);font-weight:bold;line-height:1.7;letter-spacing:0.05em;text-shadow:0 2px 12px rgba(0,0,0,0.55);color:#fff;text-align:center;';
+  screen.appendChild(msgEl);
 
   /* body に追加してカードを隠す */
   document.body.appendChild(screen);
