@@ -90,6 +90,43 @@
       font-size: 1.4em; font-weight: bold; color: #e74c3c; letter-spacing: 2px;
     }
 
+    .bg-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .bg-option {
+      position: relative;
+      border-radius: 10px;
+      overflow: hidden;
+      cursor: pointer;
+      border: 3px solid transparent;
+      aspect-ratio: 4/3;
+      transition: border-color 0.2s;
+    }
+
+    .bg-option.selected { border-color: #667eea; }
+
+    .bg-option img {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+    }
+
+    .bg-option .check {
+      position: absolute; top: 4px; right: 4px;
+      background: #667eea; color: #fff; border-radius: 50%;
+      width: 22px; height: 22px; font-size: 14px;
+      display: none; align-items: center; justify-content: center;
+    }
+
+    .bg-option.selected .check { display: flex; }
+
+    .bg-none {
+      display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(160deg,#ffd6e0 0%,#ffb3c6 45%,#ff8fab 100%);
+      font-size: 0.7em; color: #fff; font-weight: bold; text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+
     .warning-banner {
       margin-bottom: 18px; padding: 12px 14px;
       background: #fff3cd; border: 1px solid #ffc107; border-radius: 10px;
@@ -126,9 +163,38 @@
     </div>
 
     <div class="form-group">
-      <label>背景画像URL（任意）</label>
-      <input type="text" id="bg-url-input" placeholder="https://example.com/photo.jpg">
-      <div class="hint">未入力の場合は桜色の背景になります</div>
+      <label>背景画像を選択</label>
+      <div class="bg-grid" id="bg-grid">
+        <div class="bg-option selected" data-bg="" onclick="selectBg(this)">
+          <div class="bg-none">桜色<br>デフォルト</div>
+          <div class="check">✓</div>
+        </div>
+        <div class="bg-option" data-bg="fukuokatest.png" onclick="selectBg(this)">
+          <img src="fukuokatest.png" alt="fukuokatest">
+          <div class="check">✓</div>
+        </div>
+        <div class="bg-option" data-bg="福岡13期.jpg" onclick="selectBg(this)">
+          <img src="福岡13期.jpg" alt="福岡13期">
+          <div class="check">✓</div>
+        </div>
+        <div class="bg-option" data-bg="福岡13期.png" onclick="selectBg(this)">
+          <img src="福岡13期.png" alt="福岡13期">
+          <div class="check">✓</div>
+        </div>
+        <div class="bg-option" data-bg="福岡13期2.jpg" onclick="selectBg(this)">
+          <img src="福岡13期2.jpg" alt="福岡13期2">
+          <div class="check">✓</div>
+        </div>
+        <div class="bg-option" data-bg="福岡13期2.png" onclick="selectBg(this)">
+          <img src="福岡13期2.png" alt="福岡13期2">
+          <div class="check">✓</div>
+        </div>
+        <div class="bg-option" data-bg="福岡校 2026-02-24 133844.png" onclick="selectBg(this)">
+          <img src="福岡校 2026-02-24 133844.png" alt="福岡校">
+          <div class="check">✓</div>
+        </div>
+      </div>
+      <div class="hint">背景に使う画像を選んでください</div>
     </div>
 
     <button class="btn" onclick="startQR()">▶ スタート</button>
@@ -206,6 +272,15 @@ function showView(id) {
   document.getElementById(id).classList.add('active');
 }
 
+/* ─── 背景画像選択 ─── */
+var selectedBg = '';
+
+function selectBg(el) {
+  document.querySelectorAll('.bg-option').forEach(function(o) { o.classList.remove('selected'); });
+  el.classList.add('selected');
+  selectedBg = el.getAttribute('data-bg');
+}
+
 /* ─── QRコード毎秒自動生成 ─── */
 var qrTimer = null;
 var qrObj   = null;
@@ -226,7 +301,7 @@ function generateQRTick() {
   var min = parseInt(document.getElementById('minutes-input').value, 10);
   if (!min || min < 1) return;
 
-  var bg     = document.getElementById('bg-url-input').value.trim();
+  var bg     = selectedBg;
   var expiry = Date.now() + min * 60 * 1000;
   var base   = window.location.href.split('?')[0];
   var url    = base + '?mode=register&expires=' + expiry;
